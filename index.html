@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네온 리듬 비트 (Neon Rhythm Beat) - Ultimate 3D Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #05070f;
+            color: #f3f4f6;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .font-game {
+            font-family: 'Rajdhani', 'Noto Sans KR', sans-serif;
+        }
+        /* 네온 효과 */
+        .neon-glow-blue {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+        .neon-glow-pink {
+            text-shadow: 0 0 10px rgba(236, 72, 153, 0.8), 0 0 20px rgba(236, 72, 153, 0.4);
+        }
+        .neon-border-pink {
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.5);
+        }
+        .neon-border-blue {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        .neon-border-purple {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.8);
+        }
+        /* 판정 텍스트 애니메이션 */
+        @keyframes judgment-pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            20% { transform: scale(1.2); opacity: 1; }
+            80% { transform: scale(1.0); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0; }
+        }
+        .judgment-animation {
+            animation: judgment-pop 0.4s ease-out forwards;
+        }
+        /* 콤보 카운트 펄스 애니메이션 */
+        @keyframes combo-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        .combo-pulse-anim {
+            animation: combo-pulse 0.15s ease-out;
+        }
+        /* 피버 텍스트 발광 애니메이션 */
+        @keyframes fever-glow {
+            0%, 100% { text-shadow: 0 0 15px #a855f7, 0 0 25px #ec4899, 0 0 35px #ec4899; color: #fff; }
+            50% { text-shadow: 0 0 20px #3b82f6, 0 0 30px #a855f7, 0 0 40px #3b82f6; color: #e9d5ff; }
+        }
+        .fever-active-text {
+            animation: fever-glow 0.8s ease-in-out infinite;
+        }
+        /* 피버 배경색 회전 및 활성화 발광 극대화 */
+        @keyframes fever-bg-rotate {
+            0% { filter: hue-rotate(0deg) saturate(1.8) brightness(1.2); opacity: 0.25; }
+            50% { filter: hue-rotate(180deg) saturate(2.0) brightness(1.4); opacity: 0.4; }
+            100% { filter: hue-rotate(360deg) saturate(1.8) brightness(1.2); opacity: 0.25; }
+        }
+        .fever-bg-active {
+            animation: fever-bg-rotate 4s linear infinite;
+        }
+        /* 격려 전광판 메시지 애니메이션 */
+        @keyframes cheer-pop {
+            0% { transform: scale(0.3); opacity: 0; filter: blur(5px); }
+            15% { transform: scale(1.1); opacity: 1; filter: blur(0px); }
+            30% { transform: scale(1.0); opacity: 1; }
+            80% { transform: scale(1.0); opacity: 1; }
+            100% { transform: scale(1.2); opacity: 0; filter: blur(5px); }
+        }
+        .cheer-animation {
+            animation: cheer-pop 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        /* 피버 알림 순간 팝업 이펙트 */
+        @keyframes fever-announce-pop {
+            0% { transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); opacity: 0; filter: blur(10px); }
+            20% { transform: translate(-50%, -50%) scale(1.3) rotate(5deg); opacity: 1; filter: blur(0px); }
+            35% { transform: translate(-50%, -50%) scale(1.0) rotate(0deg); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1.0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5) rotate(10deg); opacity: 0; filter: blur(15px); }
+        }
+        .fever-announcer {
+            animation: fever-announce-pop 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-between p-4 relative">
+
+    <!-- 배경 데코레이션 요소 -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div id="bg-glow-pink" class="absolute -top-40 -left-40 w-96 h-96 bg-pink-500/10 rounded-full blur-[120px] transition-all duration-1000"></div>
+        <div id="bg-glow-blue" class="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] transition-all duration-1000"></div>
+    </div>
+
+    <!-- 숨겨진 오디오 업로드 엘리먼트 및 HTML5 오디오 엔진 -->
+    <input type="file" id="audio-file-input" accept="audio/*" class="hidden" onchange="handleAudioUpload(event)">
+    <audio id="game-audio" class="hidden"></audio>
+
+    <!-- 실시간 오디오 분석 전용 로더 오버레이 -->
+    <div id="analysis-loader" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#05070f]/95 backdrop-blur-md p-6">
+        <div class="text-center max-w-sm w-full">
+            <div class="relative w-24 h-24 mx-auto mb-6">
+                <div class="absolute inset-0 border-4 border-pink-500/20 border-t-pink-500 rounded-full animate-spin"></div>
+                <div class="absolute inset-2 border-4 border-blue-500/20 border-b-blue-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-pink-500 text-2xl font-bold font-game">DSP</div>
+            </div>
+            <h3 class="text-xl font-bold mb-1 text-white">실시간 음원 비트 분석 중</h3>
+            <p id="loader-song-title" class="text-pink-400 font-bold mb-4 text-sm truncate"></p>
+            <div class="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden mb-3">
+                <div id="loader-progress" class="bg-gradient-to-r from-pink-500 to-blue-500 h-1.5 w-0 transition-all duration-300"></div>
+            </div>
+            <p id="loader-status" class="text-gray-400 text-xs tracking-wide">주파수 신호 고속 분석 시작...</p>
+        </div>
+    </div>
+
+    <!-- 라이프 소진 게임 오버 커스텀 모달 -->
+    <div id="gameover-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-[#0b0f19]/90 backdrop-blur-md p-6">
+        <div class="bg-gray-900 border border-red-500/50 rounded-2xl p-6 max-w-sm w-full text-center shadow-lg shadow-red-500/20">
+            <div class="w-16 h-16 bg-red-500/10 border border-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">FAIL</h3>
+            <p class="text-gray-400 text-sm mb-4">라이프가 전부 차감되었습니다.</p>
+            <p class="text-red-400 font-bold mb-6 text-sm">라이프 소진 및 게임 실패!</p>
+            
+            <button onclick="backToLobbyFromGameOver()" class="w-full py-4 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-xl font-bold text-base transition transform active:scale-95 shadow-md shadow-pink-500/25">
+                확인 (대기실로)
+            </button>
+        </div>
+    </div>
+
+    <!-- 리뉴얼된 프리미엄 메인 대기실 화면 (Start Screen) -->
+    <div id="start-screen" class="absolute inset-0 z-40 flex flex-col items-center justify-center bg-[#05070f]/95 backdrop-blur-2xl p-4 md:p-8 overflow-y-auto">
+        <div class="w-full max-w-4xl bg-slate-950/60 border border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-[0_0_50px_rgba(168,85,247,0.15)] flex flex-col gap-6 md:gap-8 backdrop-blur-2xl my-auto">
+            
+            <div class="text-center">
+                <h1 class="text-4xl md:text-6xl font-black font-game tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 mb-2 drop-shadow-[0_0_20px_rgba(236,72,153,0.4)]">
+                    NEON RHYTHM BEAT
+                </h1>
+                <p class="text-slate-400 text-xs md:text-sm font-light tracking-wider">
+                    나만의 실제 MP3 파일만 준비하세요. 나머지는 인공지능 비트 분석기가 준비합니다.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div class="flex flex-col gap-6">
+                    <div class="bg-slate-900/30 border border-pink-500/20 hover:border-pink-500/40 transition-all duration-300 p-5 rounded-2xl flex-1 flex flex-col justify-between">
+                        <h3 class="text-pink-400 font-game font-bold text-xs tracking-wider uppercase mb-3 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span>
+                            Music Source Connect
+                        </h3>
+                        <div onclick="triggerAudioUpload()" class="border-2 border-dashed border-slate-800 hover:border-pink-500/40 transition-all duration-300 rounded-xl p-5 cursor-pointer bg-slate-950/40 flex flex-col items-center justify-center gap-3 group">
+                            <div class="w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(236,72,153,0.15)]">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                </svg>
+                            </div>
+                            <p id="audio-status-text" class="text-xs text-slate-300 font-semibold text-center">여기를 터치하여 음악 파일을 선택하세요</p>
+                            <p class="text-[10px] text-slate-500">지원 형식: .mp3, .wav, .m4a, .ogg 등</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/30 border border-cyan-500/20 p-5 rounded-2xl flex flex-col gap-4">
+                        <h3 class="text-cyan-400 font-game font-bold text-xs tracking-wider uppercase flex items-center gap-2">
+                            <span>⚡</span> Game Options
+                        </h3>
+                        
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-semibold text-slate-400">노트 낙하 배속</span>
+                                <span id="speed-multiplier-display" class="font-game text-xs font-bold text-cyan-400">1.0x</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="adjustSpeedMultiplier(-0.1)" class="w-8 h-8 flex items-center justify-center bg-slate-950 border border-slate-800 hover:bg-slate-900 rounded-lg text-xs text-slate-300 transition duration-150">-</button>
+                                <input type="range" id="speed-slider-lobby" min="0.5" max="2.0" value="1.0" step="0.1" oninput="onSpeedSlider(this.value)" class="flex-1 accent-cyan-400 h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer">
+                                <button onclick="adjustSpeedMultiplier(0.1)" class="w-8 h-8 flex items-center justify-center bg-slate-950 border border-slate-800 hover:bg-slate-900 rounded-lg text-xs text-slate-300 transition duration-150">+</button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-semibold text-slate-400">판정 오디오 싱크 미세조정</span>
+                                <span id="sync-offset-display" class="font-game text-xs font-bold text-pink-400">0 ms</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="adjustOffset(-10)" class="w-8 h-8 flex items-center justify-center bg-slate-950 border border-slate-800 hover:bg-slate-900 rounded-lg text-xs text-slate-300 transition duration-150">-</button>
+                                <input type="range" id="sync-slider-lobby" min="-150" max="150" value="0" step="5" oninput="onOffsetSlider(this.value)" class="flex-1 accent-pink-500 h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer">
+                                <button onclick="adjustOffset(10)" class="w-8 h-8 flex items-center justify-center bg-slate-950 border border-slate-800 hover:bg-slate-900 rounded-lg text-xs text-slate-300 transition duration-150">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-6">
+                    <div class="bg-slate-900/30 border border-slate-800/80 p-5 rounded-2xl flex-1">
+                        <h3 class="text-purple-400 font-game font-bold text-xs tracking-wider uppercase mb-4 flex items-center gap-2">
+                            <span>💡</span> Special Note Standard
+                        </h3>
+                        <div class="space-y-4 text-xs text-slate-300">
+                            <div class="flex items-start gap-3">
+                                <span class="w-5 h-5 rounded bg-teal-500 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_10px_rgba(20,184,166,0.5)] shrink-0">H</span>
+                                <div>
+                                    <p class="font-bold text-slate-200">롱노트 (Hold Note)</p>
+                                    <p class="text-[10px] text-slate-400 leading-relaxed">판정선에 닿는 순간부터 끝날 때까지 꾹 누르세요. 점수와 콤보가 계속 누적됩니다.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="w-5 h-5 rounded bg-yellow-500 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_10px_rgba(234,179,8,0.5)] shrink-0">2X</span>
+                                <div>
+                                    <p class="font-bold text-yellow-400">보너스 노트 (Double Score)</p>
+                                    <p class="text-[10px] text-slate-400 leading-relaxed">PERFECT/GREAT 타격 시 획득하는 점수를 2배로 수여합니다 (체력 회복 없음).</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="w-5 h-5 rounded bg-green-500 text-white flex items-center justify-center font-bold text-[10px] shadow-[0_0_10px_rgba(34,197,94,0.5)] shrink-0">♥</span>
+                                <div>
+                                    <p class="font-bold text-green-400">힐 노트 (Recovery) - 희귀</p>
+                                    <p class="text-[10px] text-slate-400 leading-relaxed">PERFECT/GREAT 타격 시 생명력을 즉시 30 충전합니다. (힐 노트 이외의 노트로는 회복 불가)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/30 border border-slate-800/80 p-5 rounded-2xl flex justify-between items-center gap-4">
+                        <div class="text-left flex flex-col gap-1.5">
+                            <h4 class="font-bold text-xs text-slate-300 flex items-center gap-1.5">
+                                <span>🎮</span> 연주 조작 키
+                            </h4>
+                            <div class="flex gap-1">
+                                <span class="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-white font-mono text-sm font-bold shadow-inner">A</span>
+                                <span class="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-white font-mono text-sm font-bold shadow-inner">S</span>
+                                <span class="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-white font-mono text-sm font-bold shadow-inner">J</span>
+                                <span class="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-white font-mono text-sm font-bold shadow-inner">K</span>
+                            </div>
+                        </div>
+                        <div class="text-right text-[10px] text-slate-400 leading-relaxed flex flex-col gap-0.5 justify-center">
+                            <p class="text-teal-400 font-bold">15콤보 마다 황홀한 FEVER 가동!</p>
+                            <p class="text-red-400">BAD(-10) / MISS(-15) 판정 시 라이프 감소</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="start-btn" disabled onclick="startGame()" class="w-full py-4.5 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 text-white rounded-xl font-bold text-lg tracking-wider cursor-pointer hover:opacity-95 transition transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-pink-500/25 duration-150">
+                연동된 MP3 파일이 존재하지 않습니다
+            </button>
+        </div>
+    </div>
+
+    <!-- 피버 타임 알림 팝업 전용 컨테이너 (시각적 임팩트 연출) -->
+    <div id="fever-announcer-container" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none text-center">
+        <h1 class="fever-announcer font-game text-6xl md:text-8xl font-black italic tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 drop-shadow-[0_0_30px_rgba(236,72,153,0.9)] uppercase select-none">
+            FEVER TIME!
+        </h1>
+    </div>
+
+    <!-- 콤보 마일스톤 격려 전광판 UI (콤보 마일스톤 도달 시 등장) -->
+    <div id="cheer-container" class="hidden absolute top-1/3 left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none text-center">
+        <h4 id="cheer-text" class="font-game font-black text-3xl md:text-4xl tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-500 uppercase drop-shadow-[0_0_15px_rgba(244,114,182,0.8)]">UNSTOPPABLE!</h4>
+    </div>
+
+    <!-- 게임 결과 화면 (CLEAR / FAIL 통합) -->
+    <div id="result-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0b0f19]/95 backdrop-blur-md p-6">
+        <div class="text-center max-w-md w-full">
+            <h2 id="result-title" class="text-4xl font-extrabold font-game tracking-widest text-transparent bg-clip-text mb-6">
+                CLEAR!
+            </h2>
+            
+            <div class="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6 mb-6 space-y-4">
+                <div class="flex justify-between items-center pb-2 border-b border-gray-700/50">
+                    <span class="text-gray-400">최종 점수</span>
+                    <span id="res-score" class="text-2xl font-black text-pink-400 font-game">0</span>
+                </div>
+                <div class="flex justify-between items-center pb-2 border-b border-gray-700/50">
+                    <span class="text-gray-400">최대 콤보</span>
+                    <span id="res-maxcombo" class="text-2xl font-black text-blue-400 font-game">0</span>
+                </div>
+                
+                <!-- 판정 세부 통계 -->
+                <div class="grid grid-cols-5 gap-1 pt-2 text-xs text-center">
+                    <div class="bg-gray-900/40 p-2 rounded">
+                        <span class="text-cyan-400 font-bold block">PERFECT</span>
+                        <span id="res-perfect" class="text-gray-200 font-bold block mt-1">0</span>
+                    </div>
+                    <div class="bg-gray-900/40 p-2 rounded">
+                        <span class="text-green-400 font-bold block">GREAT</span>
+                        <span id="res-great" class="text-gray-200 font-bold block mt-1">0</span>
+                    </div>
+                    <div class="bg-gray-900/40 p-2 rounded">
+                        <span class="text-yellow-400 font-bold block">GOOD</span>
+                        <span id="res-good" class="text-gray-200 font-bold block mt-1">0</span>
+                    </div>
+                    <div class="bg-gray-900/40 p-2 rounded">
+                        <span class="text-orange-400 font-bold block">BAD</span>
+                        <span id="res-bad" class="text-gray-200 font-bold block mt-1">0</span>
+                    </div>
+                    <div class="bg-gray-900/40 p-2 rounded">
+                        <span class="text-red-400 font-bold block">MISS</span>
+                        <span id="res-miss" class="text-gray-200 font-bold block mt-1">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 확인을 누르면 메인 대기실 화면으로 복귀 -->
+            <button onclick="backToLobby()" class="w-full py-4 bg-gradient-to-r from-pink-500 to-blue-500 hover:opacity-95 text-white rounded-xl font-bold text-base transition shadow-md shadow-pink-500/25">
+                확인 (대기실로)
+            </button>
+        </div>
+    </div>
+
+    <!-- 상단 대시보드 -->
+    <header class="w-full max-w-md flex flex-col z-10 py-2 border-b border-gray-800/50 bg-[#0b0f19]/90 backdrop-blur-sm px-2 rounded-lg">
+        <div class="flex justify-between items-center w-full">
+            <div>
+                <h2 id="song-title-display" class="font-bold text-sm tracking-wide text-gray-300 max-w-[180px] truncate">노래 제목</h2>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                    <span id="difficulty-badge" class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-500 text-white uppercase">NORMAL</span>
+                    <span id="score-display" class="font-game text-xl font-bold tracking-wider text-pink-500">SCORE: 000000</span>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-end justify-center">
+                <!-- 피어오르는 피버 모드 상태창 -->
+                <div id="fever-ui" class="hidden items-center gap-1.5 mb-0.5 px-2.5 py-0.5 rounded-full bg-purple-950/80 border border-purple-500">
+                    <span class="w-1.5 h-1.5 bg-purple-400 rounded-full animate-ping"></span>
+                    <span class="fever-active-text font-game text-[10px] font-black tracking-widest uppercase">FEVER x1.5</span>
+                </div>
+                <div>
+                    <span class="text-xs text-gray-400 uppercase tracking-widest inline">MAX COMBO</span>
+                    <span id="max-combo-display" class="font-game text-lg font-bold text-blue-400 ml-1">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 실시간 네온 그라데이션 라이프 바 계기판 (300 체력 기반) -->
+        <div class="w-full flex items-center gap-2 mt-2">
+            <span class="text-[10px] text-gray-400 font-bold tracking-wider">LIFE</span>
+            <div class="flex-1 bg-gray-950/80 rounded-full h-2 overflow-hidden border border-gray-800">
+                <div id="life-bar" class="h-full bg-gradient-to-r from-red-500 via-orange-500 to-green-500 transition-all duration-150 w-full"></div>
+            </div>
+            <span id="life-text" class="font-game text-[10px] font-bold text-green-400 w-8 text-right">300</span>
+        </div>
+
+        <!-- 인게임 싱크 및 배속 제어 패널 (기본 조작 키 고정 반영) -->
+        <div class="w-full flex justify-between items-center mt-1.5 text-[9px] text-gray-500 border-t border-gray-800/30 pt-1">
+            <span>싱크: <span id="ingame-offset-text" class="text-pink-400 font-bold font-game mr-2">0 ms</span>
+            배속: <span id="ingame-speed-text" class="text-cyan-400 font-bold font-game">1.0x</span></span>
+            <div class="flex gap-1.5">
+                <button onclick="adjustOffset(-5)" class="px-1 py-0.5 bg-gray-900 border border-gray-800 rounded hover:text-white transition">-5ms</button>
+                <button onclick="adjustOffset(5)" class="px-1 py-0.5 bg-gray-900 border border-gray-800 rounded hover:text-white transition">+5ms</button>
+                <span class="text-gray-700">|</span>
+                <button onclick="adjustSpeedMultiplier(-0.1)" class="px-1 py-0.5 bg-gray-900 border border-gray-800 rounded hover:text-white transition">-0.1x</button>
+                <button onclick="adjustSpeedMultiplier(0.1)" class="px-1 py-0.5 bg-gray-900 border border-gray-800 rounded hover:text-white transition">+0.1x</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 인게임 중앙 연출 영역 (Judgment & Combo Display) -->
+    <main class="w-full max-w-md flex-1 flex flex-col justify-end items-center relative z-10 py-16">
+        <!-- 콤보 숫자가 크게 뜨는 곳 -->
+        <div class="absolute top-1/4 flex flex-col items-center justify-center pointer-events-none">
+            <div id="combo-container" class="opacity-0 transition-opacity duration-150">
+                <span id="combo-count" class="font-game text-6xl md:text-7xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-blue-400 drop-shadow-[0_4px_12px_rgba(236,72,153,0.3)] select-none">0</span>
+                <span class="font-game text-xs tracking-[0.5em] text-gray-400 block text-center uppercase font-bold mt-1">COMBO</span>
+            </div>
+        </div>
+
+        <!-- 판정 메시지가 뜨는 곳 -->
+        <div class="absolute bottom-1/3 h-16 flex items-center justify-center pointer-events-none">
+            <div id="judgment-text" class="font-game text-3xl md:text-4xl font-black tracking-widest opacity-0 select-none"></div>
+        </div>
+    </main>
+
+    <!-- 게임 구동 캔버스 영역 (노트 하강, 주파수 비주얼라이저, 파티클 연출 전용) -->
+    <div class="absolute inset-x-0 top-0 bottom-0 flex justify-center z-0 pointer-events-none">
+        <canvas id="game-canvas" class="h-full max-w-md w-full bg-[#0a0c16]/15"></canvas>
+    </div>
+
+    <!-- 하단 건반 및 판정 라인 (컨트롤 섹션) -->
+    <footer class="w-full max-w-md z-10 flex flex-col gap-4">
+        <!-- 판정 기준선 (Visual Guide) -->
+        <div class="relative w-full h-[2px] bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 shadow-[0_0_10px_rgba(236,72,153,0.8)] opacity-80" id="visual-judge-line">
+            <!-- 가이드 화살표/이펙트 -->
+            <div class="absolute left-1/2 -translate-x-1/2 -top-1.5 px-3 py-0.5 rounded-full bg-purple-900 text-[8px] font-bold text-purple-200 tracking-wider">JUDGE LINE</div>
+        </div>
+
+        <!-- 물리 건반 & 버튼 가이드 -->
+        <div class="grid grid-cols-4 gap-2.5 h-16 md:h-20">
+            <!-- 레인 0 -->
+            <button id="key-btn-0" class="relative overflow-hidden flex flex-col items-center justify-center rounded-xl bg-gray-900/80 border border-pink-500/30 text-white font-bold transition-all active:scale-95 select-none" onmousedown="triggerKeyPress(0)" onmouseup="triggerKeyRelease(0)" ontouchstart="event.preventDefault(); triggerKeyPress(0)" ontouchend="event.preventDefault(); triggerKeyRelease(0)">
+                <span class="font-game text-lg text-pink-500">A</span>
+                <span class="text-[9px] text-gray-500 font-light mt-0.5 uppercase">L-Pink</span>
+                <!-- 터치 피드백 이펙트 박스 -->
+                <div id="press-feedback-0" class="absolute inset-0 pointer-events-none opacity-0 transition-opacity bg-pink-500/20"></div>
+            </button>
+            
+            <!-- 레인 1 -->
+            <button id="key-btn-1" class="relative overflow-hidden flex flex-col items-center justify-center rounded-xl bg-gray-900/80 border border-pink-500/20 text-white font-bold transition-all active:scale-95 select-none" onmousedown="triggerKeyPress(1)" onmouseup="triggerKeyRelease(1)" ontouchstart="event.preventDefault(); triggerKeyPress(1)" ontouchend="event.preventDefault(); triggerKeyRelease(1)">
+                <span class="font-game text-lg text-pink-400">S</span>
+                <span class="text-[9px] text-gray-500 font-light mt-0.5 uppercase">Sub-Pink</span>
+                <div id="press-feedback-1" class="absolute inset-0 pointer-events-none opacity-0 transition-opacity bg-pink-400/20"></div>
+            </button>
+
+            <!-- 레인 2 -->
+            <button id="key-btn-2" class="relative overflow-hidden flex flex-col items-center justify-center rounded-xl bg-gray-900/80 border border-blue-500/20 text-white font-bold transition-all active:scale-95 select-none" onmousedown="triggerKeyPress(2)" onmouseup="triggerKeyRelease(2)" ontouchstart="event.preventDefault(); triggerKeyPress(2)" ontouchend="event.preventDefault(); triggerKeyRelease(2)">
+                <span class="font-game text-lg text-blue-400">J</span>
+                <span class="text-[9px] text-gray-500 font-light mt-0.5 uppercase">Sub-Blue</span>
+                <div id="press-feedback-2" class="absolute inset-0 pointer-events-none opacity-0 transition-opacity bg-blue-400/20"></div>
+            </button>
+
+            <!-- 레인 3 -->
+            <button id="key-btn-3" class="relative overflow-hidden flex flex-col items-center justify-center rounded-xl bg-gray-900/80 border border-blue-500/30 text-white font-bold transition-all active:scale-95 select-none" onmousedown="triggerKeyPress(3)" onmouseup="triggerKeyRelease(3)" ontouchstart="event.preventDefault(); triggerKeyPress(3)" ontouchend="event.preventDefault(); triggerKeyRelease(3)">
+                <span class="font-game text-lg text-blue-500">K</span>
+                <span class="text-[9px] text-gray-500 font-light mt-0.5 uppercase">R-Blue</span>
+                <div id="press-feedback-3" class="absolute inset-0 pointer-events-none opacity-0 transition-opacity bg-blue-500/20"></div>
+            </button>
+        </div>
+        
+        <!-- 오디오 재생 알림 및 컨트롤 버튼 -->
+        <div class="flex justify-between items-center px-1 mb-2 text-xs text-gray-500">
+            <span>A, S, J, K 키 또는 터치 패드를 탭하여 타이밍을 맞추세요.</span>
+            <button onclick="stopGame()" class="text-pink-400 hover:text-pink-300 transition underline">강제종료</button>
+        </div>
+    </footer>
+
+    <!-- 게임 사운드 시스템 및 로직 자바스크립트 -->
+    <script>
+        // 음계 주파수 테이블 정의
+        const NOTE_FREQ = {
+            'C2': 65.41, 'D2': 73.42, 'E2': 82.41, 'F2': 87.31, 'G2': 98.00, 'A2': 110.00, 'B2': 123.47,
+            'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
+            'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77,
+            'C6': 1046.50
+        };
+
+        // --- 1. Sound System (오디오, 이퀄라이저, 타격 효과음 재생) ---
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.masterGain = null;
+                this.analyser = null;         // 비주얼라이저 전용 AnalyserNode
+                this.mediaSource = null;      // 오디오 미디어 소스 홀더
+                this.dataArray = null;        // 이퀄라이저 주파수 버퍼
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime); // 타격음 볼륨 조절
+                    this.masterGain.connect(this.ctx.destination);
+
+                    // 1단계: AnalyserNode 초기화
+                    this.analyser = this.ctx.createAnalyser();
+                    this.analyser.fftSize = 64; // 깔끔한 막대 그래프를 위해 데이터 크기 최적화
+                    const bufferLength = this.analyser.frequencyBinCount;
+                    this.dataArray = new Uint8Array(bufferLength);
+
+                    // 2단계: 오디오 소스 라우팅 연결
+                    const audioElement = document.getElementById('game-audio');
+                    this.mediaSource = this.ctx.createMediaElementSource(audioElement);
+                    this.mediaSource.connect(this.analyser);
+                    this.analyser.connect(this.ctx.destination); // 스피커로 출력
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // 일반 노트를 타격할 때 나는 삑삑 소리(오실레이터 효과음)를 완전 무음 처리합니다.
+            playHitSound(judgment) {
+                // 노트를 타격할 때의 모든 신디사이저 효과음을 비활성화합니다.
+                return;
+            }
+
+            // [수정]: 피버 타임 진입 전용 효과음도 완전히 침묵(무음) 처리하기 위해 재생을 생략합니다.
+            playFeverSound() {
+                // 피버타임 효과음을 완전히 비활성화합니다.
+                return;
+            }
+        }
+
+        const audio = new SoundSystem();
+
+        // --- 2. 전역 게임 및 오디오 상태 ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const bgAudio = document.getElementById('game-audio');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 업로드 및 분석이 끝난 곡 메타데이터 저장용 객체
+        let customUploadedSong = null;
+
+        // 화려한 파티클 이펙트 저장용 어레이
+        let hitParticles = [];
+
+        // 신규 기능 2: 레이저 잔상 빔 투명도 관리 어레이
+        let laneBeams = [0, 0, 0, 0];
+
+        // 타격 성공 시 진동 화면 흔들림(Camera Shake) 수치 값
+        let cameraShake = 0;
+
+        let gameState = {
+            isPlaying: false,
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            life: 300,
+            maxLife: 300,
+            notes: [],
+            keyStates: [false, false, false, false],
+            judgments: { PERFECT: 0, GREAT: 0, GOOD: 0, BAD: 0, MISS: 0 },
+            startTime: 0,
+            elapsedTime: 0,
+            animationId: null,
+            speed: 5.8,
+            laneCount: 4,
+            syncOffset: 0, // 판정 싱크 미세조정 오프셋 (ms 단위)
+            speedMultiplier: 1.0, // 노트 속도 멀티플라이어 (배속)
+            lastAudioTime: 0,
+            lastAudioUpdatePerformanceTime: 0,
+            feverMode: false, // 피버 모드 상태 트리거
+            feverTimer: 0,    // 피버 남은 시간 (초)
+            lastFrameTime: 0, // 프레임 경과 시간(dt) 측정을 위한 이전 스탬프
+            activeHolds: [null, null, null, null] // 각 레인별 활성화된 홀드 노트를 담아두는 배열
+        };
+
+        // 오디오 업로드 제어 전역 바인딩
+        window.triggerAudioUpload = function() {
+            document.getElementById('audio-file-input').click();
+        };
+
+        // --- DSP 비트 분석 및 오디오 업로드 처리 핸들러 ---
+        async function analyzeAudioBuffer(audioBuffer, onProgress) {
+            return new Promise((resolve) => {
+                const channelData = audioBuffer.getChannelData(0); // 모노 채널 데이터 획득
+                const sampleRate = audioBuffer.sampleRate;
+                
+                // 1단계: 저주파(Bass) 대역 추출을 위한 저역통과 필터 적용 및 에너지 추출 (약 20ms 간격)
+                onProgress(20, "오디오 신호 저주파 필터링 중...");
+                
+                // 150Hz 차단 주파수 (킥드럼 및 저음 어택 강화)
+                const cutoff = 150;
+                const dt = 1.0 / sampleRate;
+                const rc = 1.0 / (2 * Math.PI * cutoff);
+                const alpha = dt / (rc + dt);
+                
+                const blockSize = Math.round(sampleRate * 0.02); // 20ms block
+                const step = Math.round(sampleRate * 0.01);     // 10ms hop
+                const energies = [];
+                const energyTimes = [];
+                
+                let y = 0; // 필터 이전 상태값
+
+                for (let i = 0; i < channelData.length - blockSize; i += step) {
+                    let sum = 0;
+                    for (let j = 0; j < blockSize; j++) {
+                        const x = channelData[i + j];
+                        // 1차 RC 저역통과 필터 (Low-Pass Filter) 연산
+                        y = y + alpha * (x - y);
+                        sum += y * y;
+                    }
+                    energies.push(Math.sqrt(sum / blockSize));
+                    energyTimes.push(i / sampleRate);
+                }
+
+                onProgress(50, "음원 에너지 온셋 피크 분석 중...");
+                // 2단계: 동적 임계값 필터링을 통해 리드미컬 비트 어택(Onset) 지점 정밀 감지
+                const peaks = [];
+                const thresholdWindow = 40; // 약 400ms 윈도우 크기
+
+                for (let i = thresholdWindow; i < energies.length - thresholdWindow; i++) {
+                    const currentEnergy = energies[i];
+                    
+                    // 주변 평균 에너지 계산
+                    let localSum = 0;
+                    for (let j = -thresholdWindow; j <= thresholdWindow; j++) {
+                        localSum += energies[i + j];
+                    }
+                    const localAverage = localSum / (thresholdWindow * 2 + 1);
+                    
+                    // 1.25 기준의 정밀 필터링 임계점
+                    const dynamicThreshold = localAverage * 1.25; 
+
+                    // 로컬 피크 여부 검사
+                    if (currentEnergy > dynamicThreshold && currentEnergy > energies[i - 1] && currentEnergy > energies[i + 1]) {
+                        peaks.push(energyTimes[i]);
+                    }
+                }
+
+                onProgress(80, "템포(BPM) 분석 및 매핑 중...");
+                // 3단계: 피크 간 간격 분석을 통한 템포(BPM) 산출 (BPM Interval Histogram)
+                const intervals = [];
+                for (let i = 0; i < peaks.length; i++) {
+                    // 주변 8개 피크와의 시간차 수집
+                    for (let j = i + 1; j < Math.min(i + 9, peaks.length); j++) {
+                        const diff = peaks[j] - peaks[i];
+                        if (diff > 0.3 && diff < 1.5) { // 현실적인 간격 필터
+                            intervals.push(diff);
+                        }
+                    }
+                }
+
+                // 템포 주사 빈도 수집 및 최다 발생 BPM 추종
+                const bpmHistogram = {};
+                for (let i = 0; i < intervals.length; i++) {
+                    let tempBpm = 60 / intervals[i];
+                    
+                    // 90 ~ 170 BPM 사이의 K-POP 규격 범위로 노멀라이즈 배정
+                    while (tempBpm < 90) tempBpm *= 2;
+                    while (tempBpm > 175) tempBpm /= 2;
+                    
+                    const roundedBpm = Math.round(tempBpm);
+                    bpmHistogram[roundedBpm] = (bpmHistogram[roundedBpm] || 0) + 1;
+                }
+
+                let dominantBpm = 120; // 디폴트 BPM
+                let maxCount = 0;
+                for (const bpmKey in bpmHistogram) {
+                    if (bpmHistogram[bpmKey] > maxCount) {
+                        maxCount = bpmHistogram[bpmKey];
+                        dominantBpm = parseInt(bpmKey);
+                    }
+                }
+
+                onProgress(100, "분석 완료! 노트 채보 구축 중...");
+                resolve({
+                    bpm: dominantBpm,
+                    beatTimes: peaks
+                });
+            });
+        }
+
+        window.handleAudioUpload = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const loader = document.getElementById('analysis-loader');
+            const progress = document.getElementById('loader-progress');
+            const status = document.getElementById('loader-status');
+            const songTitle = document.getElementById('loader-song-title');
+
+            songTitle.innerText = file.name;
+            loader.classList.remove('hidden');
+            progress.style.width = "0%";
+
+            const setProgress = (val, msg) => {
+                progress.style.width = `${val}%`;
+                status.innerText = msg;
+            };
+
+            try {
+                // 임시 디코더 컨텍스트 생성
+                const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+                setProgress(10, "오디오 바이너리 데이터 로드 중...");
+                
+                const arrayBuffer = await file.arrayBuffer();
+                setProgress(25, "오디오 신호 디코딩 중 (시간이 다소 소요될 수 있습니다)...");
+                
+                const decodedBuffer = await tempCtx.decodeAudioData(arrayBuffer);
+                
+                // 정밀 오디오 분석 및 비트 추출 진행
+                const analysisResult = await analyzeAudioBuffer(decodedBuffer, setProgress);
+
+                // 파일명 분석하여 가수와 제목 자동 매핑
+                const rawName = file.name.replace(/\.[^/.]+$/, ""); // 확장자 제거
+                let title = rawName;
+                let artist = "Uploaded Song";
+
+                if (rawName.includes('-')) {
+                    const parts = rawName.split('-');
+                    artist = parts[0].trim();
+                    title = parts[1].trim();
+                }
+
+                // 템플릿 탐지된 실제 BPM 기준 난이도 스펙트럼 세팅
+                const bpm = analysisResult.bpm;
+                let difficulty = 'NORMAL';
+                let speed = 6.1; // NORMAL 속도 5.8 -> 6.1로 보정
+                let badgeColor = 'bg-blue-500';
+
+                if (bpm < 110) {
+                    difficulty = 'EASY';
+                    speed = 4.7; // EASY 속도 4.5 -> 4.7로 보정
+                    badgeColor = 'bg-green-500';
+                } else if (bpm >= 135) {
+                    difficulty = 'HARD';
+                    speed = 7.6; // HARD 속도 7.2 -> 7.6으로 보정
+                    badgeColor = 'bg-red-500';
+                }
+
+                // 오디오 실제 피크 타임 목록을 기준으로 리듬 게임 노트 생성
+                const melody = [];
+                const peaks = analysisResult.beatTimes;
+                
+                // 각 레인이 언제까지 홀드 노트로 막혀 있는지 추적하는 배열
+                const laneBlockedUntil = [0, 0, 0, 0]; 
+
+                for (let i = 0; i < peaks.length; i++) {
+                    const time = peaks[i];
+                    
+                    const minInterval = difficulty === 'EASY' ? 0.237 : (difficulty === 'HARD' ? 0.114 : 0.171);
+                    if (melody.length > 0 && (time - melody[melody.length - 1].time) < minInterval) {
+                        continue;
+                    }
+
+                    // 기본 레인 할당 연산
+                    let lane = Math.floor(Math.sin(i * 1.5) * 2 + 2) % 4;
+
+                    // 만약 현재 타겟으로 설정된 레인이 롱노트 누르기 지속시간으로 잠겨 있다면, 비어 있는 다른 레인으로 우회 배정
+                    if (time < laneBlockedUntil[lane]) {
+                        let foundFreeLane = false;
+                        for (let l = 0; l < 4; l++) {
+                            const testLane = (lane + l) % 4;
+                            if (time >= laneBlockedUntil[testLane]) {
+                                lane = testLane;
+                                foundFreeLane = true;
+                                break;
+                            }
+                        }
+                        // 만약 모든 라인이 홀드 노트를 누르고 있는 상태라면 비정상 겹침 노트를 예방하기 위해 생성을 스킵
+                        if (!foundFreeLane) {
+                            continue;
+                        }
+                    }
+
+                    // 롱노트 7% 고정, 보너스골드 8%, 힐노트 2%, 일반노트 83%로 비율 정밀조율
+                    let noteType = 'normal';
+                    let holdDuration = 0;
+                    
+                    const randVal = Math.random();
+                    if (randVal < 0.07) { // 롱 노트 출현 빈도를 7%로 유지
+                        noteType = 'hold';
+                        holdDuration = 0.5 + Math.random() * 1.0; // 꼬리 길이 지정
+                        
+                        // 생성된 롱노트가 끝나는 지점(+ 0.15초 안전 여백)까지 이 레인에 신규 노트 스폰을 차단합니다.
+                        laneBlockedUntil[lane] = time + holdDuration + 0.15;
+                    } else if (randVal < 0.15) { // 0.07 ~ 0.15 구간 (8% 확률로 골드 보너스 스폰 비율 증가)
+                        noteType = 'gold'; 
+                    } else if (randVal < 0.17) { // 0.15 ~ 0.17 구간 (2% 확률로 힐 노트 희귀 스폰)
+                        noteType = 'heal'; 
+                    }
+
+                    melody.push({
+                        lane: lane,
+                        time: time, // 판정선에 닿을 실제 음악 타임(초)
+                        type: noteType,
+                        holdDuration: holdDuration
+                    });
+                }
+
+                // 가상 블롭 파일 바인딩
+                const fileUrl = URL.createObjectURL(file);
+
+                customUploadedSong = {
+                    title: title,
+                    artist: artist,
+                    bpm: bpm,
+                    difficulty: difficulty,
+                    speed: speed,
+                    badgeColor: badgeColor,
+                    audioUrl: fileUrl,
+                    notes: melody
+                };
+
+                // 로딩 종료 및 UI 세팅
+                setTimeout(() => {
+                    loader.classList.add('hidden');
+                    
+                    const statusText = document.getElementById('audio-status-text');
+                    statusText.innerText = `✅ [${file.name}] BPM ${bpm} 자동 채보 완료! (노트 수: ${melody.length}개)`;
+                    statusText.className = "text-sm text-green-400 font-bold";
+
+                    const startBtn = document.getElementById('start-btn');
+                    startBtn.disabled = false;
+                    startBtn.innerText = "START RHYTHM PLAY";
+                    startBtn.className = "w-full py-4 bg-gradient-to-r from-pink-500 via-purple-600 to-blue-500 text-white rounded-xl font-bold text-lg tracking-wider cursor-pointer hover:opacity-90 transition transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-pink-500/25 duration-150";
+                }, 800);
+
+            } catch (err) {
+                status.innerText = "음원 파일 분석 도중 오류가 발생했습니다. 다른 형식으로 다시 시도해주세요.";
+                setTimeout(() => {
+                    loader.classList.add('hidden');
+                }, 2000);
+            }
+        };
+
+        // --- 3D Perspective Projection 좌표 변환 함수 ---
+        function getPerspectivePos(lane, y2D) {
+            const judgeY = canvas.height - 80;
+            const yFraction = Math.max(0, y2D / judgeY);
+            
+            // 트랙 넓이 셋업 (상단: 40% 폭, 하단 판정선: 90% 폭)
+            const topTrackWidth = canvas.width * 0.40;
+            const bottomTrackWidth = canvas.width * 0.90;
+            
+            const trackWidth = topTrackWidth + (bottomTrackWidth - topTrackWidth) * yFraction;
+            const startX = (canvas.width - trackWidth) / 2;
+            const laneWidth = trackWidth / gameState.laneCount;
+            
+            const screenX = startX + lane * laneWidth + laneWidth / 2;
+            const screenY = yFraction * judgeY;
+            
+            return {
+                x: screenX,
+                y: screenY,
+                width: laneWidth,
+                scale: 0.35 + yFraction * 0.65 // 위에서는 작고, 아래로 내려올수록 원래 크기(1.0)로 확대
+            };
+        }
+
+        // --- 파티클 객체 팩토리 ---
+        function createParticles(lane, size = 15, customColor = null) {
+            const pos = getPerspectivePos(lane, canvas.height - 80); // 판정선 원근 좌표 연계
+            
+            const isPinkLane = (lane === 0 || lane === 1);
+            let baseColor = isPinkLane ? { r: 236, g: 72, b: 153 } : { r: 59, g: 130, b: 246 };
+            if (customColor) {
+                baseColor = customColor;
+            }
+
+            for (let i = 0; i < size; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 5;
+                hitParticles.push({
+                    x: pos.x,
+                    y: pos.y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2, // 위로 솟아오르는 가속도
+                    color: `${baseColor.r}, ${baseColor.g}, ${baseColor.b}`,
+                    alpha: 1.0,
+                    size: 2 + Math.random() * 4,
+                    life: 1.0,
+                    decay: 0.02 + Math.random() * 0.03 // 수명 감소 속도
+                });
+            }
+        }
+
+        // --- 신규 기능 1: 배속 제어 함수 ---
+        function adjustSpeedMultiplier(amount) {
+            gameState.speedMultiplier = parseFloat((gameState.speedMultiplier + amount).toFixed(1));
+            gameState.speedMultiplier = Math.max(0.5, Math.min(2.0, gameState.speedMultiplier));
+            updateSpeedUI();
+        }
+
+        // 범위 배속 동기화
+        function onSpeedSlider(val) {
+            gameState.speedMultiplier = parseFloat(parseFloat(val).toFixed(1));
+            updateSpeedUI();
+        }
+
+        function updateSpeedUI() {
+            const displayVal = gameState.speedMultiplier.toFixed(1) + "x";
+            const speedDisplay = document.getElementById('speed-multiplier-display');
+            if (speedDisplay) speedDisplay.innerText = displayVal;
+
+            const ingameSpeedDisplay = document.getElementById('ingame-speed-text');
+            if (ingameSpeedDisplay) ingameSpeedDisplay.innerText = displayVal;
+
+            const slider = document.getElementById('speed-slider-lobby');
+            if (slider) slider.value = gameState.speedMultiplier;
+        }
+
+        // --- 3. 오프셋 제어 함수 ---
+        function adjustOffset(amount) {
+            gameState.syncOffset = Math.max(-150, Math.min(150, gameState.syncOffset + amount));
+            updateOffsetUI();
+        }
+
+        // 범위 오프셋 동기화
+        function onOffsetSlider(val) {
+            gameState.syncOffset = parseInt(val);
+            updateOffsetUI();
+        }
+
+        function updateOffsetUI() {
+            const displayVal = (gameState.syncOffset >= 0 ? "+" : "") + gameState.syncOffset + " ms";
+            const syncDisplay = document.getElementById('sync-offset-display');
+            if (syncDisplay) syncDisplay.innerText = displayVal;
+            
+            const ingameSyncDisplay = document.getElementById('ingame-offset-text');
+            if (ingameSyncDisplay) ingameSyncDisplay.innerText = displayVal;
+            
+            const slider = document.getElementById('sync-slider-lobby');
+            if (slider) slider.value = gameState.syncOffset;
+        }
+
+        // generateNotePattern 및 updateLifeUI 함수 구현체
+        function generateNotePattern(song) {
+            const notes = [];
+            const delayOffset = 3.0; // 사용자가 적응할 수 있도록 시작 후 대기 여유 시간 3초 제공
+
+            song.notes.forEach((n, idx) => {
+                notes.push({
+                    id: `${idx}-${n.lane}`,
+                    lane: n.lane,
+                    time: n.time + delayOffset, // 음악 시간 축에 3초 보정 추가
+                    type: n.type,
+                    holdDuration: n.holdDuration,
+                    hit: false,
+                    missed: false,
+                    holdReleasedEarly: false,
+                    tailHit: false
+                });
+            });
+
+            notes.sort((a, b) => a.time - b.time);
+            return notes;
+        }
+
+        function updateLifeUI() {
+            const lifeBar = document.getElementById('life-bar');
+            const lifeText = document.getElementById('life-text');
+            const percentage = (gameState.life / gameState.maxLife) * 100;
+            
+            if (lifeBar) lifeBar.style.width = `${Math.max(0, percentage)}%`;
+            if (lifeText) lifeText.innerText = Math.round(gameState.life);
+            
+            // 생명력 수치에 따른 동적 발광 컬러 체킹
+            if (gameState.life > 150) {
+                if (lifeText) lifeText.className = "font-game text-[10px] font-bold text-green-400 w-8 text-right";
+                if (lifeBar) lifeBar.style.background = "linear-gradient(to right, #ef4444, #f97316, #22c55e)";
+            } else if (gameState.life > 60) {
+                if (lifeText) lifeText.className = "font-game text-[10px] font-bold text-orange-400 w-8 text-right";
+                if (lifeBar) lifeBar.style.background = "linear-gradient(to right, #ef4444, #f97316)";
+            } else {
+                if (lifeText) lifeText.className = "font-game text-[10px] font-bold text-red-500 w-8 text-right animate-pulse";
+                if (lifeBar) lifeBar.style.background = "#ef4444";
+            }
+        }
+
+        // 핵심 게임 제어 함수 등록
+        window.startGame = function() {
+            if (!customUploadedSong) return;
+
+            audio.init();
+
+            // 대기실 숨기기 및 결과창 가림막 제거
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen) startScreen.classList.add('hidden');
+            const resultScreen = document.getElementById('result-screen');
+            if (resultScreen) resultScreen.classList.add('hidden');
+
+            const titleDisplay = document.getElementById('song-title-display');
+            if (titleDisplay) titleDisplay.innerText = `${customUploadedSong.title} - ${customUploadedSong.artist}`;
+
+            const dBadge = document.getElementById('difficulty-badge');
+            if (dBadge) {
+                dBadge.innerText = customUploadedSong.difficulty;
+                dBadge.className = `text-[10px] px-2 py-0.5 rounded-full font-bold text-white uppercase ${customUploadedSong.badgeColor}`;
+            }
+
+            // 플레이 수치 및 라이프 초기화 (300 한도 유지)
+            gameState.isPlaying = true;
+            gameState.score = 0;
+            gameState.combo = 0;
+            gameState.maxCombo = 0;
+            gameState.life = 300;
+            gameState.maxLife = 300;
+            gameState.feverMode = false;
+            gameState.feverTimer = 0;
+            gameState.lastFrameTime = 0;
+            gameState.judgments = { PERFECT: 0, GREAT: 0, GOOD: 0, BAD: 0, MISS: 0 };
+            gameState.notes = generateNotePattern(customUploadedSong);
+            gameState.speed = customUploadedSong.speed;
+            gameState.startTime = performance.now();
+            gameState.elapsedTime = 0;
+            gameState.lastAudioTime = 0;
+            gameState.lastAudioUpdatePerformanceTime = performance.now();
+            gameState.activeHolds = [null, null, null, null];
+            cameraShake = 0;
+            hitParticles = [];
+            laneBeams = [0, 0, 0, 0];
+
+            updateScoreDisplay();
+            updateComboDisplay(0);
+            updateLifeUI();
+            updateOffsetUI();
+            updateSpeedUI();
+            toggleFeverUI(false);
+
+            // 실음원 재생 개시
+            bgAudio.src = customUploadedSong.audioUrl;
+            bgAudio.currentTime = 0;
+            
+            // 사운드 카드 실제 구동 지연(Latency) 완벽 추적 보정 핸들러
+            bgAudio.onplaying = () => {
+                if (gameState.isPlaying) {
+                    // 실제 기기 소리 출력이 연계 구동되기 시작하는 시점을 정확히 추적하여 동기화
+                    const actualPlayTime = bgAudio.currentTime;
+                    gameState.startTime = performance.now() - ((actualPlayTime + 3.0) * 1000);
+                    gameState.lastAudioTime = actualPlayTime + 3.0;
+                    gameState.lastAudioUpdatePerformanceTime = performance.now();
+                }
+            };
+            
+            // 싱크 밀림을 방지하기 위해 3초 대기 딜레이 후 소리 재생
+            setTimeout(() => {
+                if (gameState.isPlaying) {
+                    bgAudio.play().catch(() => {});
+                }
+            }, 3000);
+
+            if (gameState.animationId) cancelAnimationFrame(gameState.animationId);
+            gameState.animationId = requestAnimationFrame(gameLoop);
+        };
+
+        window.triggerLifeExhausted = function() {
+            gameState.isPlaying = false;
+            cancelAnimationFrame(gameState.animationId);
+            bgAudio.pause(); // 음악 즉각 중단
+            
+            // FAIL 모드로 결과 화면 띄우기
+            showResult(false);
+        };
+
+        window.backToLobbyFromGameOver = function() {
+            const overModal = document.getElementById('gameover-modal');
+            if (overModal) overModal.classList.add('hidden');
+            backToLobby();
+        };
+
+        window.stopGame = function() {
+            gameState.isPlaying = false;
+            cancelAnimationFrame(gameState.animationId);
+            bgAudio.pause();
+            toggleFeverUI(false);
+            
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen) startScreen.classList.remove('hidden');
+        };
+
+        window.showResult = function(isClear) {
+            gameState.isPlaying = false;
+            cancelAnimationFrame(gameState.animationId);
+            bgAudio.pause();
+            toggleFeverUI(false);
+
+            const titleEl = document.getElementById('result-title');
+            
+            if (isClear) {
+                // 초록빛의 화려한 네온 클리어 연출
+                if (titleEl) {
+                    titleEl.innerText = "CLEAR!";
+                    titleEl.className = "text-5xl font-extrabold font-game tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-500 to-cyan-400 mb-6 drop-shadow-[0_0_15px_rgba(34,211,238,0.7)]";
+                }
+            } else {
+                // 붉은색 강렬한 네온 실패 연출
+                if (titleEl) {
+                    titleEl.innerText = "FAIL";
+                    titleEl.className = "text-5xl font-extrabold font-game tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-pink-600 mb-6 drop-shadow-[0_0_15px_rgba(239,68,68,0.7)]";
+                }
+            }
+
+            const resScore = document.getElementById('res-score');
+            if (resScore) resScore.innerText = gameState.score.toString().padStart(6, '0');
+            const resMaxCombo = document.getElementById('res-maxcombo');
+            if (resMaxCombo) resMaxCombo.innerText = gameState.maxCombo;
+            const resPerfect = document.getElementById('res-perfect');
+            if (resPerfect) resPerfect.innerText = gameState.judgments.PERFECT;
+            const resGreat = document.getElementById('res-great');
+            if (resGreat) resGreat.innerText = gameState.judgments.GREAT;
+            const resGood = document.getElementById('res-good');
+            if (resGood) resGood.innerText = gameState.judgments.GOOD;
+            const resBad = document.getElementById('res-bad');
+            if (resBad) resBad.innerText = gameState.judgments.BAD;
+            const resMiss = document.getElementById('res-miss');
+            if (resMiss) resMiss.innerText = gameState.judgments.MISS;
+
+            const resScreen = document.getElementById('result-screen');
+            if (resScreen) resScreen.classList.remove('hidden');
+        };
+
+        window.backToLobby = function() {
+            const resScreen = document.getElementById('result-screen');
+            if (resScreen) resScreen.classList.add('hidden');
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen) startScreen.classList.remove('hidden');
+            updateSpeedUI();
+            updateOffsetUI();
+        };
+
+        window.toggleFeverUI = function(active) {
+            const feverUi = document.getElementById('fever-ui');
+            const bgGlowPink = document.getElementById('bg-glow-pink');
+            const bgGlowBlue = document.getElementById('bg-glow-blue');
+            const visualLine = document.getElementById('visual-judge-line');
+
+            if (active) {
+                if (feverUi) {
+                    feverUi.classList.remove('hidden');
+                    feverUi.classList.add('flex');
+                }
+                
+                // 백그라운드 조명 극대화 발광 연출 (Hue 회전 및 색상 강조 적용)
+                if (bgGlowPink) {
+                    bgGlowPink.style.transform = 'scale(1.4)';
+                    bgGlowPink.classList.add('fever-bg-active');
+                }
+                if (bgGlowBlue) {
+                    bgGlowBlue.style.transform = 'scale(1.4)';
+                    bgGlowBlue.classList.add('fever-bg-active');
+                }
+
+                // [피버 알림 기능]: 판정 기준선을 무지갯빛 그라데이션 및 발광 이펙트로 강조
+                if (visualLine) {
+                    visualLine.style.background = 'linear-gradient(90deg, #ff007f, #7f00ff, #00f0ff, #ff007f)';
+                    visualLine.style.boxShadow = '0 0 25px rgba(168, 85, 247, 1), 0 0 10px rgba(236, 72, 153, 1)';
+                    visualLine.style.animation = 'fever-bg-rotate 2s linear infinite';
+                }
+            } else {
+                if (feverUi) {
+                    feverUi.classList.remove('flex');
+                    feverUi.classList.add('hidden');
+                }
+                
+                // 원형 노멀 상태 조명 환원
+                if (bgGlowPink) {
+                    bgGlowPink.style.transform = 'none';
+                    bgGlowPink.classList.remove('fever-bg-active');
+                }
+                if (bgGlowBlue) {
+                    bgGlowBlue.style.transform = 'none';
+                    bgGlowBlue.classList.remove('fever-bg-active');
+                }
+
+                // 판정선 노멀 네온 테마로 환원
+                if (visualLine) {
+                    visualLine.style.background = 'linear-gradient(90deg, #ec4899, #a855f7, #3b82f6)';
+                    visualLine.style.boxShadow = '0 0 10px rgba(236, 72, 153, 0.8)';
+                    visualLine.style.animation = 'none';
+                }
+            }
+        };
+
+        window.triggerMilestoneCheer = function(comboValue) {
+            const container = document.getElementById('cheer-container');
+            const textEl = document.getElementById('cheer-text');
+            
+            // [해결 방안]: 요소가 DOM에 완전히 바인딩되지 않거나 누락되었을 때의 방어형 가드 조건문 추가
+            if (!container || !textEl) return;
+
+            // 콤보별 차별화된 격려 메시지 셋팅 (15 콤보 단위 체계적 개조)
+            let message = "FEVER TIME!";
+            if (comboValue === 15) { message = "FEVER START!"; }
+            else if (comboValue === 30) { message = "COOL DRIVE!"; }
+            else if (comboValue === 45) { message = "AMAZING!"; }
+            else if (comboValue === 60) { message = "CRAZY HIT!"; }
+            else if (comboValue === 75) { message = "HYPER BEAT!"; }
+            else if (comboValue > 75 && comboValue % 30 === 0) { message = "LEGENDARY STRIKE!"; }
+            
+            textEl.innerText = message;
+            container.classList.remove('hidden');
+            
+            // 애니메이션 강제 주입 리플로우
+            textEl.classList.remove('cheer-animation');
+            textEl.offsetHeight;
+            textEl.classList.add('cheer-animation');
+            
+            // 1.5초 후 제거
+            setTimeout(() => {
+                if (gameState.combo < comboValue) return; // 중간에 이미 콤보가 끊겼다면 억제
+                container.classList.add('hidden');
+            }, 1500);
+        };
+
+        // --- 8. Main Game Loop ---
+        function gameLoop(timestamp) {
+            if (!gameState.isPlaying) return;
+
+            // 정밀 프레임 간 델타타임(dt) 연산
+            if (!gameState.lastFrameTime) gameState.lastFrameTime = timestamp;
+            const dt = (timestamp - gameState.lastFrameTime) / 1000;
+            gameState.lastFrameTime = timestamp;
+
+            // 피버 타이머 실시간 카운트다운 연동 (15콤보 트리거 기반)
+            if (gameState.feverMode && gameState.feverTimer > 0) {
+                gameState.feverTimer -= dt;
+                
+                // 화면의 피버 텍스트에 남은 시간(소수점 1자리)을 실시간으로 갱신
+                const feverText = document.querySelector('.fever-active-text');
+                if (feverText) {
+                    feverText.innerText = `FEVER x1.5 (${gameState.feverTimer.toFixed(1)}s)`;
+                }
+
+                // 3초 경과 시 피버 부드럽게 해제
+                if (gameState.feverTimer <= 0) {
+                    gameState.feverTimer = 0;
+                    gameState.feverMode = false;
+                    toggleFeverUI(false);
+                }
+            }
+
+            // 판정 싱크 미세조정 오프셋 적용 연산
+            const calculatedOffset = (gameState.syncOffset || 0) / 1000;
+
+            if (bgAudio.currentTime !== gameState.lastAudioTime - 3.0) {
+                gameState.lastAudioTime = bgAudio.currentTime + 3.0;
+                gameState.lastAudioUpdatePerformanceTime = performance.now();
+            }
+
+            const timeSinceLastAudioUpdate = (performance.now() - gameState.lastAudioUpdatePerformanceTime) / 1000;
+            
+            if (bgAudio.paused && bgAudio.currentTime === 0) {
+                gameState.elapsedTime = (timestamp - gameState.startTime) / 1000 + calculatedOffset;
+            } else {
+                gameState.elapsedTime = gameState.lastAudioTime + timeSinceLastAudioUpdate + calculatedOffset;
+            }
+
+            // 실시간 롱노트(Hold Note) 누르기 상태 감지 및 판정 처리
+            for (let i = 0; i < gameState.laneCount; i++) {
+                const activeHold = gameState.activeHolds[i];
+                if (activeHold) {
+                    // 키를 계속 누르고 있는지 체크
+                    if (gameState.keyStates[i]) {
+                        // 꾹 누르고 있을 때: 0.1초마다 이펙트 및 스코어 증가
+                        if (!activeHold.lastTickTime) activeHold.lastTickTime = gameState.elapsedTime;
+                        if (gameState.elapsedTime - activeHold.lastTickTime > 0.1) {
+                            gameState.score += gameState.feverMode ? 30 : 20;
+                            createParticles(i, 2, { r: 20, g: 184, b: 166 }); // 청록색 파티클로 고정
+                            activeHold.lastTickTime = gameState.elapsedTime;
+                            
+                            // 실시간 스코어 표시 업데이트
+                            updateScoreDisplay();
+                        }
+
+                        // 롱노트가 끝나는 지점에 도달했는지 확인
+                        const noteEndTime = activeHold.time + activeHold.holdDuration;
+                        if (gameState.elapsedTime >= noteEndTime && !activeHold.tailHit) {
+                            activeHold.tailHit = true;
+                            activeHold.hit = true;
+                            gameState.activeHolds[i] = null;
+                            applyJudgment('PERFECT', i); // 릴리즈 성공 판정
+                        }
+                    } else {
+                        // 중간에 손을 뗀 경우: Hold Break 및 BAD 처리 (라이프 10 감소)
+                        activeHold.holdReleasedEarly = true;
+                        activeHold.hit = true; // 더 이상 렌더링되지 않게 처리
+                        gameState.activeHolds[i] = null;
+                        applyJudgment('BAD', i); // 롱노트 도중 손뗌
+                    }
+                }
+            }
+
+            // 카메라 셰이크 감쇠 계산 (진동 값 서서히 리셋)
+            cameraShake *= 0.85;
+            if (cameraShake < 0.1) cameraShake = 0;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 타격 효과 카메라 셰이크 주입
+            ctx.save();
+            if (cameraShake > 0) {
+                const dx = (Math.random() - 0.5) * cameraShake;
+                const dy = (Math.random() - 0.5) * cameraShake;
+                ctx.translate(dx, dy);
+            }
+
+            const judgeY = canvas.height - 80;
+
+            // ==========================================
+            // 주파수 비주얼라이저 (피버 타임 시 증폭 연출 적용)
+            // ==========================================
+            if (audio.analyser && bgAudio.currentTime > 0) {
+                audio.analyser.getByteFrequencyData(audio.dataArray);
+                const barWidth = canvas.width / audio.dataArray.length;
+                
+                ctx.save();
+                for (let i = 0; i < audio.dataArray.length; i++) {
+                    const value = audio.dataArray[i];
+                    const percent = value / 255;
+                    
+                    // [피버 연출]: 피버 타임일 때는 비주얼라이저 폭을 1.4배 대폭 증폭
+                    const heightMultiplier = gameState.feverMode ? 1.4 : 1.0;
+                    const barHeight = percent * 140 * heightMultiplier;
+
+                    // 피버 시 전용 스파크 색조 흐름 (무지갯빛) 연동
+                    let r, g, b;
+                    if (gameState.feverMode) {
+                        const shift = (timestamp / 5 + i * 15) % 360;
+                        // HSL to RGB 숏트랙 적용
+                        const c = 255;
+                        const x = Math.round(c * (1 - Math.abs(((shift / 60) % 2) - 1)));
+                        if (shift < 60) { r = c; g = x; b = 0; }
+                        else if (shift < 120) { r = x; g = c; b = 0; }
+                        else if (shift < 180) { r = 0; g = c; b = x; }
+                        else if (shift < 240) { r = 0; g = x; b = c; }
+                        else if (shift < 300) { r = x; g = 0; b = c; }
+                        else { r = c; g = 0; b = x; }
+                    } else {
+                        r = 236 - i * 3;
+                        g = 72 + i * 2;
+                        b = 153 + i * 2;
+                    }
+
+                    ctx.shadowBlur = gameState.feverMode ? 18 : 10;
+                    ctx.shadowColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${percent * (gameState.feverMode ? 0.6 : 0.35)})`; // 반투명 연출
+                    ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 2, barHeight);
+
+                    // [피버 연출]: 피버 상태일 때 이퀄라이저 상단에 고속으로 튕겨 나가는 아케이드 튀김 입자 렌더링
+                    if (gameState.feverMode && Math.random() < 0.15 && barHeight > 40) {
+                        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.9)`;
+                        ctx.beginPath();
+                        ctx.arc(i * barWidth + barWidth/2, canvas.height - barHeight - (Math.random() * 25), 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
+            }
+
+            // ==========================================
+            // 원근 그리드 배경 라인 렌더링 (Warp Speed Grid)
+            // ==========================================
+            ctx.save();
+            // [피버 연출]: 피버 타임일 때 사이버네틱 바닥 격자 색상이 실시간 무지갯빛 그라데이션으로 화려하게 변환
+            let strokeColor;
+            if (gameState.feverMode) {
+                const shiftColor = (timestamp / 5) % 360;
+                strokeColor = `hsla(${shiftColor}, 100%, 65%, 0.35)`;
+            } else {
+                strokeColor = "rgba(59, 130, 246, 0.08)";
+            }
+
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = gameState.feverMode ? 2.5 : 1.5;
+            
+            // 피버 모드 시 공간 워프 격자가 1.5배 고속 하강하도록 연산 속도 보정
+            const speedMultiplier = gameState.feverMode ? 1.5 : 1.0;
+            const gridSpeed = gameState.speed * gameState.speedMultiplier * 2.5 * speedMultiplier;
+            const gridOffset = (gameState.elapsedTime * gridSpeed) % 1.0;
+            for (let j = 0; j < 12; j++) {
+                const zVal = (j - gridOffset) / 10;
+                if (zVal >= 0 && zVal <= 1) {
+                    const lineY = zVal * judgeY;
+                    const leftPos = getPerspectivePos(0, lineY);
+                    const rightPos = getPerspectivePos(3, lineY);
+                    ctx.beginPath();
+                    ctx.moveTo(leftPos.x - leftPos.width/2, lineY);
+                    ctx.lineTo(rightPos.x + rightPos.width/2, lineY);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+
+            // ==========================================
+            // 원근 트랙 3D 가이드 라인 드로잉
+            // ==========================================
+            ctx.save();
+            for (let i = 0; i <= gameState.laneCount; i++) {
+                const topTrackWidth = canvas.width * 0.40;
+                const bottomTrackWidth = canvas.width * 0.90;
+                
+                const topStartX = (canvas.width - topTrackWidth) / 2;
+                const bottomStartX = (canvas.width - bottomTrackWidth) / 2;
+                
+                const topW = topTrackWidth / gameState.laneCount;
+                const bottomW = bottomTrackWidth / gameState.laneCount;
+
+                const lx1 = topStartX + i * topW;
+                const lx2 = bottomStartX + i * bottomW;
+
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
+                ctx.lineWidth = i === 0 || i === gameState.laneCount ? 2 : 1;
+                ctx.beginPath();
+                ctx.moveTo(lx1, 0);
+                ctx.lineTo(lx2, judgeY);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // ==========================================
+            // 레이저 키 빔 이펙트 렌더링
+            // ==========================================
+            ctx.save();
+            for (let i = 0; i < gameState.laneCount; i++) {
+                if (laneBeams[i] > 0) {
+                    laneBeams[i] -= dt * 4.5; // 빠르게 감소하는 투명도 감쇄 필터
+                    if (laneBeams[i] < 0) laneBeams[i] = 0;
+
+                    const isPinkLane = (i === 0 || i === 1);
+                    const beamColor = isPinkLane ? "236, 72, 153" : "59, 130, 246";
+
+                    // 원근을 따르는 3D 레이저 격자 폴리곤 생성
+                    const pTop = getPerspectivePos(i, 0);
+                    const pBottom = getPerspectivePos(i, judgeY);
+
+                    ctx.beginPath();
+                    ctx.moveTo(pTop.x - pTop.width/2 + 2, 0);
+                    ctx.lineTo(pTop.x + pTop.width/2 - 2, 0);
+                    ctx.lineTo(pBottom.x + pBottom.width/2 - 4, judgeY);
+                    ctx.lineTo(pBottom.x - pBottom.width/2 + 4, judgeY);
+                    ctx.closePath();
+
+                    const beamGrad = ctx.createLinearGradient(0, judgeY, 0, 0);
+                    beamGrad.addColorStop(0, `rgba(${beamColor}, ${laneBeams[i] * 0.3})`);
+                    beamGrad.addColorStop(0.7, `rgba(${beamColor}, ${laneBeams[i] * 0.1})`);
+                    beamGrad.addColorStop(1, `rgba(${beamColor}, 0)`);
+
+                    ctx.fillStyle = beamGrad;
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+
+            // 건반 누르기 상태에서의 3D 원근형 레인 프레스 반응 드로잉
+            ctx.save();
+            for (let i = 0; i < gameState.laneCount; i++) {
+                if (gameState.keyStates[i]) {
+                    const pTop = getPerspectivePos(i, 0);
+                    const pBottom = getPerspectivePos(i, judgeY);
+
+                    ctx.beginPath();
+                    ctx.moveTo(pTop.x - pTop.width/2 + 2, 0);
+                    ctx.lineTo(pTop.x + pTop.width/2 - 2, 0);
+                    ctx.lineTo(pBottom.x + pBottom.width/2 - 4, judgeY);
+                    ctx.lineTo(pBottom.x - pBottom.width/2 + 4, judgeY);
+                    ctx.closePath();
+
+                    const isPinkLane = (i === 0 || i === 1);
+                    const pressGrad = ctx.createLinearGradient(0, judgeY, 0, 0);
+                    if (isPinkLane) {
+                        pressGrad.addColorStop(0, 'rgba(236, 72, 153, 0.12)');
+                        pressGrad.addColorStop(1, 'rgba(236, 72, 153, 0)');
+                    } else {
+                        pressGrad.addColorStop(0, 'rgba(59, 130, 246, 0.12)');
+                        pressGrad.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                    }
+                    ctx.fillStyle = pressGrad;
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+
+            // [피버 연출 복구]: 피버모드 무지개 테두리 가시성 대폭 증강 연출
+            if (gameState.feverMode) {
+                ctx.save();
+                const hue = (timestamp / 8) % 360;
+                // 두껍고 활기찬 HSLA 무지개 테두리 발광 처리
+                ctx.strokeStyle = `hsla(${hue}, 100%, 65%, ${0.5 + Math.sin(timestamp / 150) * 0.2})`;
+                ctx.lineWidth = 10; // 기존 6에서 10으로 업그레이드
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = `hsla(${hue}, 100%, 60%, 1.0)`;
+                ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+                ctx.restore();
+            }
+
+            // 노트 위치 계산 및 드로잉 (3D Perspective 투영법 적용)
+            for (let i = 0; i < gameState.notes.length; i++) {
+                const note = gameState.notes[i];
+
+                if (note.hit) continue;
+
+                const timeDiff = note.time - gameState.elapsedTime;
+                
+                // 배속 제어가 곱해진 원시 2D y 위치 수식
+                const rawY = judgeY - (timeDiff * gameState.speed * gameState.speedMultiplier * 100);
+
+                // 롱노트(Hold Note) 꼬리 렌더링 범위 계산 및 처리
+                if (note.type === 'hold') {
+                    const tailTimeDiff = (note.time + note.holdDuration) - gameState.elapsedTime;
+                    const tailY = judgeY - (tailTimeDiff * gameState.speed * gameState.speedMultiplier * 100);
+
+                    // 롱노트 헤드 기준 skipping 연산으로 교체하여 off-screen 에서의 갑작스러운 팝인 버그 완화
+                    if (rawY < -100) continue;
+
+                    // 롱노트의 꼬리가 이미 판정선 아래로 내려갔는데도 손을 안 댄 경우 자동 MISS 처리 (라이프 15 차감)
+                    if (tailTimeDiff < -0.22 && !note.missed) {
+                        note.missed = true;
+                        applyJudgment('MISS');
+                        if (gameState.life <= 0) return;
+                    }
+
+                    // [3D 원근법 적용]: 꼬리와 머리의 원근 변환 좌표 획득
+                    const startY2D = gameState.activeHolds[note.lane] === note ? judgeY : Math.min(rawY, judgeY);
+                    const posHead = getPerspectivePos(note.lane, startY2D);
+                    const posTail = getPerspectivePos(note.lane, tailY);
+
+                    if (startY2D > tailY) {
+                        ctx.save();
+                        // 롱노트 페이드인 투명도 적용 (팝인 완화)
+                        const fadeProgress = Math.max(0, Math.min(1, startY2D / 150));
+                        ctx.globalAlpha = fadeProgress;
+
+                        ctx.shadowBlur = 12;
+                        ctx.shadowColor = 'rgba(20, 184, 166, 0.4)';
+                        
+                        // 사다리꼴 형태의 원근법 꼬리 레일 폴리곤 생성
+                        ctx.beginPath();
+                        ctx.moveTo(posTail.x - posTail.width/2 + 6, posTail.y);
+                        ctx.lineTo(posTail.x + posTail.width/2 - 6, posTail.y);
+                        ctx.lineTo(posHead.x + posHead.width/2 - 6, posHead.y);
+                        ctx.lineTo(posHead.x - posHead.width/2 + 6, posHead.y);
+                        ctx.closePath();
+
+                        const trailGrad = ctx.createLinearGradient(0, posHead.y, 0, posTail.y);
+                        trailGrad.addColorStop(0, 'rgba(20, 184, 166, 0.65)');
+                        trailGrad.addColorStop(1, 'rgba(20, 184, 166, 0.05)');
+                        ctx.fillStyle = trailGrad;
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                    
+                    // [오라 고리 제외]: 롱노트 하강 임팩트 오라를 완전히 제거하고 점진적 스파클만 페이드인 연출
+                    if (rawY > 0 && rawY < judgeY) {
+                        ctx.save();
+                        const fadeProgress = Math.max(0, Math.min(1, rawY / 150));
+                        const pos = getPerspectivePos(note.lane, rawY);
+
+                        // 머리 위에서 조그맣게 흩날리는 네온 먼지 스파클 연출도 부드럽게 페이드인
+                        ctx.fillStyle = `rgba(20, 184, 166, ${fadeProgress * 0.7})`;
+                        ctx.beginPath();
+                        ctx.arc(pos.x + (Math.sin(timestamp / 50) * 8), pos.y - 12 * pos.scale, 1.5 * fadeProgress, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                } else {
+                    if (rawY < -50) continue;
+
+                    // 일반/골드/힐 노트 미획득 이탈 처리
+                    if (timeDiff < -0.22 && !note.missed) {
+                        note.missed = true;
+                        applyJudgment('MISS');
+                        if (gameState.life <= 0) return;
+                    }
+                }
+
+                // [3D 원근법 적용]: 일반/골드/힐 노트의 원근 드로잉 연산
+                if (rawY < canvas.height + 50 && !note.missed) {
+                    const pos = getPerspectivePos(note.lane, rawY);
+                    const width = pos.width - 20 * pos.scale;
+                    const height = 14 * pos.scale;
+
+                    let mainColor = '#ec4899';
+                    let glowColor = 'rgba(236, 72, 153, 0.5)';
+
+                    if (note.type === 'hold') {
+                        mainColor = '#14b8a6';
+                        glowColor = 'rgba(20, 184, 166, 0.5)';
+                    } else if (note.type === 'gold') {
+                        mainColor = '#eab308';
+                        glowColor = 'rgba(234, 179, 8, 0.6)';
+                    } else if (note.type === 'heal') {
+                        mainColor = '#22c55e';
+                        glowColor = 'rgba(34, 197, 94, 0.6)';
+                    } else {
+                        const isPinkLane = (note.lane === 0 || note.lane === 1);
+                        mainColor = isPinkLane ? '#ec4899' : '#3b82f6';
+                        glowColor = isPinkLane ? 'rgba(236, 72, 153, 0.5)' : 'rgba(59, 130, 246, 0.5)';
+                    }
+
+                    ctx.save();
+                    // 모든 일반/롱노트의 팝인 방지를 위해 노출 진행도(fadeProgress) 투명도를 전체 렌더링에 일관 적용
+                    const fadeProgress = Math.max(0, Math.min(1, rawY / 150));
+                    ctx.globalAlpha = fadeProgress;
+
+                    ctx.shadowBlur = 12 * pos.scale;
+                    ctx.shadowColor = glowColor;
+                    
+                    ctx.fillStyle = mainColor;
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(pos.x - width/2, pos.y - height/2, width, height, 6 * pos.scale);
+                    } else {
+                        ctx.rect(pos.x - width/2, pos.y - height/2, width, height);
+                    }
+                    ctx.fill();
+
+                    // 스페셜 아이콘 심볼 장식 드로잉
+                    ctx.shadowBlur = 0;
+                    if (note.type === 'gold') {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = `bold ${Math.max(6, Math.round(9 * pos.scale))}px Rajdhani`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('2X', pos.x, pos.y);
+                    } else if (note.type === 'heal') {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = `bold ${Math.max(7, Math.round(10 * pos.scale))}px Rajdhani`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('♥', pos.x, pos.y);
+                    } else if (note.type === 'hold') {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = `bold ${Math.max(5, Math.round(8 * pos.scale))}px Rajdhani`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('HOLD', pos.x, pos.y);
+                    } else {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(pos.x - width/2 + 4 * pos.scale, pos.y - height/4, width - 8 * pos.scale, height/2, 3 * pos.scale);
+                        } else {
+                            ctx.rect(pos.x - width/2 + 4 * pos.scale, pos.y - height/4, width - 8 * pos.scale, height/2);
+                        }
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
+                }
+            }
+
+            // ==========================================
+            // 파티클 업데이트 및 드로잉
+            // ==========================================
+            for (let i = hitParticles.length - 1; i >= 0; i--) {
+                const p = hitParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                p.life -= p.decay;
+
+                if (p.alpha <= 0 || p.life <= 0) {
+                    hitParticles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = `rgba(${p.color}, 0.8)`;
+                ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            ctx.restore(); // 카메라 셰이크 이펙트 복구
+
+            // 실제 오디오 파일 재생 완료 여부 판정 (완주 성공 시 true 인자와 함께 CLEAR 결과 화면 노출)
+            if (bgAudio.src && bgAudio.duration) {
+                if (bgAudio.ended || bgAudio.currentTime >= bgAudio.duration - 0.2) {
+                    showResult(true);
+                    return;
+                }
+            } else if (customUploadedSong && gameState.notes.length > 0) {
+                const lastNote = gameState.notes[gameState.notes.length - 1];
+                if (gameState.elapsedTime > lastNote.time + 3.0) {
+                    showResult(true);
+                    return;
+                }
+            }
+
+            gameState.animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- 9. Beat Recognition & Combo Engine ---
+        const TIMING_WINDOW = {
+            PERFECT: 0.043, 
+            GREAT: 0.090,   
+            GOOD: 0.138,    
+            BAD: 0.190      
+        };
+
+        function hitNote(lane) {
+            if (!gameState.isPlaying) return;
+
+            const calculatedOffset = (gameState.syncOffset || 0) / 1000;
+            const precisePerformanceNow = performance.now();
+            const timeSinceLastAudioUpdate = (precisePerformanceNow - gameState.lastAudioUpdatePerformanceTime) / 1000;
+            
+            let exactElapsedTime = 0;
+            if (bgAudio.paused && bgAudio.currentTime === 0) {
+                exactElapsedTime = (precisePerformanceNow - gameState.startTime) / 1000 + calculatedOffset;
+            } else {
+                exactElapsedTime = gameState.lastAudioTime + timeSinceLastAudioUpdate + calculatedOffset;
+            }
+
+            let targetNote = null;
+            let minDiff = Infinity;
+
+            for (let i = 0; i < gameState.notes.length; i++) {
+                const note = gameState.notes[i];
+                if (note.lane === lane && !note.hit && !note.missed) {
+                    const diff = Math.abs(note.time - exactElapsedTime);
+                    if (diff < 0.25 && diff < minDiff) {
+                        minDiff = diff;
+                        targetNote = note;
+                    }
+                }
+            }
+
+            if (targetNote) {
+                // 롱노트(Hold Note)인 경우 특수 작동 분기
+                if (targetNote.type === 'hold') {
+                    // 판정선 머리 타격 성공 시 홀딩 상태 돌입
+                    if (minDiff <= TIMING_WINDOW.GREAT) { 
+                        targetNote.lastTickTime = exactElapsedTime;
+                        gameState.activeHolds[lane] = targetNote;
+                        applyHoldHeadJudgment('PERFECT', lane); // 머리는 PERFECT로 매핑하여 쾌적한 시작 제공
+                    } else {
+                        // 머리를 너무 빨리/늦게 쳐서 놓친 경우 BAD 판정 (라이프 10 감소)
+                        targetNote.hit = true;
+                        applyJudgment('BAD', lane);
+                    }
+                    return;
+                }
+
+                let currentJudgment = 'BAD';
+
+                if (minDiff <= TIMING_WINDOW.PERFECT) {
+                    currentJudgment = 'PERFECT';
+                } else if (minDiff <= TIMING_WINDOW.GREAT) {
+                    currentJudgment = 'GREAT';
+                } else if (minDiff <= TIMING_WINDOW.GOOD) {
+                    currentJudgment = 'GOOD';
+                } else if (minDiff <= TIMING_WINDOW.BAD) {
+                    currentJudgment = 'BAD';
+                }
+
+                targetNote.hit = true;
+                applyJudgment(currentJudgment, lane, targetNote);
+            }
+        }
+
+        // 롱노트 헤드 타격 성공 시 별도의 이펙트 및 파티클 처리
+        function applyHoldHeadJudgment(judgment, lane) {
+            // 롱노트 최초 홀드 입력 성공 시 효과음을 완전히 비활성화했습니다.
+            laneBeams[lane] = 1.0;
+            createParticles(lane, 10, { r: 20, g: 184, b: 166 }); // 청록색 파티클
+            
+            const jdText = document.getElementById('judgment-text');
+            jdText.className = `font-game text-4xl md:text-5xl font-black tracking-widest text-center uppercase text-teal-400 drop-shadow-[0_0_12px_rgba(20,184,166,0.8)] judgment-animation`;
+            jdText.innerText = "HOLD!";
+            
+            jdText.style.animation = 'none';
+            jdText.offsetHeight; 
+            jdText.style.animation = null;
+
+            // 타격 성공 순간 화면 진동 가해 타격감 보정
+            cameraShake = 6;
+        }
+
+        // Judgment Handler and Penalty Rules (체력 회복 최소화 밸런싱 패치 적용)
+        function applyJudgment(judgment, lane = null, noteObj = null) {
+            gameState.judgments[judgment]++;
+            
+            // playHitSound 실행을 보존하나 해당 메서드가 내부에서 무음(return) 처리되므로 단타 타격음이 완전 소거됩니다.
+            audio.playHitSound(judgment);
+
+            const jdText = document.getElementById('judgment-text');
+            let colorClass = 'text-gray-400';
+            let textShadow = '';
+
+            // PERFECT 및 GREAT는 연속 콤보가 유지됩니다.
+            if (judgment === 'PERFECT' || judgment === 'GREAT') {
+                gameState.combo++;
+                
+                // 파티클 생성 및 레이저 키 빔 투명도 꽉 채우기
+                if (lane !== null && lane !== undefined) {
+                    // 노트 종류에 따라 파티클 컬러 다르게 변화
+                    let pColor = null;
+                    if (noteObj) {
+                        if (noteObj.type === 'gold') pColor = { r: 234, g: 179, b: 8 }; // 황금색
+                        else if (noteObj.type === 'heal') pColor = { r: 34, g: 197, b: 94 }; // 초록색
+                    }
+                    createParticles(lane, 15, pColor);
+                    laneBeams[lane] = 1.0; // @레이저 빔 활성화 (100% 투명도)
+                }
+
+                if (gameState.combo > gameState.maxCombo) {
+                    gameState.maxCombo = gameState.combo;
+                    document.getElementById('max-combo-display').innerText = gameState.maxCombo;
+                }
+                
+                // 피버모드 스코어 동적 멀티플라이어 연동
+                const scoreBonus = gameState.combo * 10;
+                let multiplier = gameState.feverMode ? 1.5 : 1.0;
+
+                // 보너스 골드 노트의 점수 2배 효과가 PERFECT 및 GREAT 모두에서 활성화되도록 설정
+                let noteScoreFactor = 1.0;
+                if (noteObj && noteObj.type === 'gold' && (judgment === 'PERFECT' || judgment === 'GREAT')) {
+                    noteScoreFactor = 2.0;
+                }
+
+                if (judgment === 'PERFECT') {
+                    gameState.score += Math.round((1000 + scoreBonus) * multiplier * noteScoreFactor);
+                    colorClass = 'text-cyan-400';
+                    textShadow = 'drop-shadow-[0_0_12px_rgba(34,211,238,0.8)]';
+                    cameraShake = 9; // PERFECT 타격 시 강력한 진동 피드백
+                } else {
+                    gameState.score += Math.round((700 + scoreBonus) * multiplier * noteScoreFactor);
+                    colorClass = 'text-green-400';
+                    textShadow = 'drop-shadow-[0_0_12px_rgba(74,222,128,0.8)]';
+                    cameraShake = 5; // GREAT 타격 시 부드러운 진동 피드백
+                }
+                
+                // PERFECT / GREAT 판정 시, 힐 노트가 '아닌' 경우에도 체력이 회복되던 예외 구간을 모조리 도려냈습니다.
+                // 이제 오로지 noteObj가 존재하고, 그 타입이 'heal'인 경우에만 라이프가 회복(+30)됩니다.
+                if (noteObj && noteObj.type === 'heal') {
+                    gameState.life = Math.min(300, gameState.life + 30); 
+                }
+
+                updateLifeUI();
+                updateComboDisplay(gameState.combo);
+
+            } else {
+                // GOOD / BAD / MISS 판정 발생 시 즉각 콤보 및 피버 초기화
+                gameState.combo = 0;
+                updateComboDisplay(0);
+
+                if (gameState.feverMode) {
+                    gameState.feverMode = false;
+                    gameState.feverTimer = 0; // 타이머 완전히 해제
+                    toggleFeverUI(false);
+                }
+
+                if (judgment === 'GOOD') {
+                    gameState.score += 400;
+                    colorClass = 'text-yellow-400';
+                    textShadow = 'drop-shadow-[0_0_12px_rgba(250,204,21,0.8)]';
+                    cameraShake = 2; // GOOD 시 미세 흔들림
+                } else if (judgment === 'BAD') {
+                    gameState.score += 100;
+                    colorClass = 'text-orange-500';
+                    textShadow = 'drop-shadow-[0_0_12px_rgba(249,115,22,0.8)]';
+                    
+                    // BAD 판정 시 라이프 감쇄량 확대 (-10)
+                    gameState.life = Math.max(0, gameState.life - 10);
+                    updateLifeUI();
+                } else {
+                    // MISS
+                    colorClass = 'text-red-500';
+                    textShadow = 'drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]';
+                    
+                    // MISS 판정 시 라이프 감쇄량 확대 (-15)
+                    gameState.life = Math.max(0, gameState.life - 15);
+                    updateLifeUI();
+                }
+            }
+
+            // 콤보 마일스톤 격려 알림 및 피버 주기 단축 (15콤보 마다 작동!)
+            if (gameState.combo > 0 && gameState.combo % 15 === 0) {
+                // 피버가 새로 시작되는 순간(FeverMode가 꺼져있다가 켜지는 지점)에만 한 번 오디오 효과음 재생(수정: 현재 playFeverSound 가 공백 함수로 수정되어 무음 상태) 및 텍스트 팝업 지시
+                if (!gameState.feverMode) {
+                    audio.playFeverSound();
+                    const announcer = document.getElementById('fever-announcer-container');
+                    if (announcer) {
+                        announcer.classList.remove('hidden');
+                        setTimeout(() => {
+                            announcer.classList.add('hidden');
+                        }, 1200);
+                    }
+                }
+                
+                gameState.feverMode = true;
+                gameState.feverTimer = 3.0; // 3초 재충전
+                toggleFeverUI(true);
+                triggerMilestoneCheer(gameState.combo); // 격려 텍스트 출력
+            }
+
+            // 50콤보 달성 시 체력 보너스(+20)를 완전히 삭제하고, 점수 보상(+5000점)으로 변경했습니다.
+            if (gameState.combo > 0 && gameState.combo % 50 === 0) {
+                gameState.score += 5000; 
+                updateLifeUI();
+            }
+
+            updateScoreDisplay();
+
+            // 라이프 소진 즉시 판정 및 결과 화면 가동
+            if (gameState.life <= 0) {
+                triggerLifeExhausted();
+                return;
+            }
+
+            jdText.className = `font-game text-4xl md:text-5xl font-black tracking-widest text-center uppercase ${colorClass} ${textShadow} judgment-animation`;
+            jdText.innerText = judgment;
+            
+            jdText.style.animation = 'none';
+            jdText.offsetHeight; 
+            jdText.style.animation = null;
+        }
+
+        function updateComboDisplay(combo) {
+            const comboContainer = document.getElementById('combo-container');
+            const comboCount = document.getElementById('combo-count');
+
+            if (combo >= 2) {
+                comboCount.innerText = combo;
+                comboContainer.classList.remove('opacity-0');
+                comboContainer.classList.add('opacity-100');
+
+                comboCount.classList.remove('combo-pulse-anim');
+                comboCount.offsetHeight; 
+                comboCount.classList.add('combo-pulse-anim');
+            } else {
+                comboContainer.className = "opacity-0 transition-opacity duration-150";
+            }
+        }
+
+        // flex 레이아웃 포맷팅 반영
+        function updateScoreDisplay() {
+            document.getElementById('score-display').innerText = `SCORE: ${gameState.score.toString().padStart(6, '0')}`;
+        }
+
+        // 입력 조작 키맵 세팅 (고정 지정 기본 키셋)
+        const keyMap = {
+            'a': 0, 'A': 0, 'ㅁ': 0,
+            's': 1, 'S': 1, 'ㄴ': 1,
+            'j': 2, 'J': 2, 'ㅓ': 2,
+            'k': 3, 'K': 3, 'ㅏ': 3
+        };
+
+        function getKeyLane(key) {
+            const pressed = key.toLowerCase();
+            if (keyMap[pressed] !== undefined) return keyMap[pressed];
+            return undefined;
+        }
+
+        function triggerKeyPress(lane) {
+            if (lane < 0 || lane > 3 || !gameState.isPlaying) return;
+            gameState.keyStates[lane] = true;
+            
+            hitNote(lane);
+
+            const btn = document.getElementById(`key-btn-${lane}`);
+            const feedback = document.getElementById(`press-feedback-${lane}`);
+            
+            if (lane === 0 || lane === 1) {
+                btn.className = "relative overflow-hidden flex flex-col items-center justify-center rounded-xl bg-pink-900/40 border border-pink-400 text-white font-bold transition-all scale-95 select-none neon-border-pink";
+            } else {
+                btn.className = "relative overflow-hidden flex flex-col items-center justify-center rounded-xl bg-blue-900/40 border border-blue-400 text-white font-bold transition-all scale-95 select-none neon-border-blue";
+            }
+            feedback.style.opacity = '1';
+        }
+
+        function triggerKeyRelease(lane) {
+            if (lane < 0 || lane > 3) return;
+            gameState.keyStates[lane] = false;
+
+            const btn = document.getElementById(`key-btn-${lane}`);
+            const feedback = document.getElementById(`press-feedback-${lane}`);
+            
+            if (lane === 0 || lane === 1) {
+                btn.className = "relative overflow-hidden flex flex-col items-center justify-center rounded-xl bg-gray-900/80 border border-pink-500/30 text-white font-bold transition-all select-none";
+            } else {
+                btn.className = "relative overflow-hidden flex flex-col items-center justify-center rounded-xl bg-gray-900/80 border border-blue-500/30 text-white font-bold transition-all select-none";
+            }
+            feedback.style.opacity = '0';
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            const lane = getKeyLane(e.key);
+            if (lane !== undefined) {
+                triggerKeyPress(lane);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const lane = getKeyLane(e.key);
+            if (lane !== undefined) {
+                triggerKeyRelease(lane);
+            }
+        });
+    </script>
+</body>
+</html>
